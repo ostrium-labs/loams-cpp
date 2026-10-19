@@ -1,0 +1,53 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      # The SDK lives in the monorepo until the 0.1.0 release tarball is published.
+      - uses: actions/checkout@v4
+        with:
+          repository: ostrium-labs/loams
+          path: loams
+          sparse-checkout: sdks/cpp
+      - name: toolchain
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build clang libcurl4-openssl-dev pkg-config
+      # The SDK's stubs are protobuf 36.1 gencode, which compiles only against the same
+      # runtime. Ubuntu 24.04 ships 3.21, so build v36.1 (with its vendored Abseil) once
+      # and cache it.
+      - name: protobuf runtime (cache)
+        id: protobuf-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/protobuf
+          key: protobuf-v36.1-shared-${{ runner.os }}-${{ runner.arch }}
+      - name: protobuf runtime (build v36.1)
+        if: steps.protobuf-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          src="$RUNNER_TEMP/protobuf"
+          git clone -q --depth 1 --branch v36.1 --recurse-submodules --shallow-submodules \
+            https://github.com/protocolbuffers/protobuf.git "$src"
+          cmake -S "$src" -B "$src/build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$HOME/.local/protobuf" -DBUILD_SHARED_LIBS=ON \
+            -Dprotobuf_BUILD_TESTS=OFF -Dprotobuf_BUILD_PROTOC_BINARIES=OFF \
+            -Dprotobuf_ABSL_PROVIDER=module -DABSL_PROPAGATE_CXX_STD=ON -DCMAKE_CXX_STANDARD=17
+          cmake --build "$src/build" -j 4
+          cmake --install "$src/build"
+      - name: protobuf runtime (environment)
+        run: |
+          prefix="$HOME/.local/protobuf"
+          pc=$(dirname "$(find "$prefix" -name protobuf.pc | head -1)")
+          {
+            echo "PKG_CONFIG_PATH=$pc"
+            echo "CMAKE_PREFIX_PATH=$prefix"
+            echo "LD_LIBRARY_PATH=$(dirname "$pc")"
+          } >> "$GITHUB_ENV"
+      - name: build the examples
+        run: |
+          cmake -S . -B build -G Ninja -DLOAMS_SDK_DIR="$PWD/loams/sdks/cpp"
+          cmake --build build -j 4
