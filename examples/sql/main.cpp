@@ -2,8 +2,8 @@
 //
 //   ./sql
 //
-// SQL is served at /v1/namespaces/{ns}/sql by the native API (there is no SQL RPC
-// in the protos), so this calls the route through the SDK's raw call path.
+// Demonstrate the native SQL HTTP route through the SDK runtime. The SDK also
+// provides the loams.sql.v1 SQL RPC module.
 // Reads and writes only the `examples-cpp` namespace.
 
 #include "loams_raw.hpp"

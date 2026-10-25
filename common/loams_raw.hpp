@@ -1,11 +1,7 @@
 // Shared helpers for the examples.
 //
-// The C++ SDK's typed facade covers the instance, live, approvals, devices,
-// operations and notifications modules. Collections, documents, search and SQL
-// have no typed C++ module yet, so the examples reach them through the SDK's raw
-// call path: `Client::Unary` with a `MethodBinding` and `google.protobuf.Struct`
-// messages over Connect JSON. Auth, retries, timeouts and typed errors still come
-// from the SDK runtime; only the message types are dynamic.
+// These examples demonstrate raw Connect JSON calls through the SDK runtime.
+// App modules, builders, collection handles, SQL and streams are also available.
 //
 // Every call is pinned to the `examples-cpp` namespace.
 
@@ -110,7 +106,7 @@ inline std::string Text(const Value& value) {
 
 // --- Raw calls ----------------------------------------------------------------------------------
 
-/// One RPC the typed facade does not serve. `path` empty means the Connect path
+/// One raw RPC call (app modules also provide typed calls). `path` empty means the Connect path
 /// `/<rpc>`; otherwise it is an HTTP route of the native API.
 inline Struct Call(loams::Loams& client, const std::string& rpc, const std::string& request_json,
                    bool read_only, const std::string& path = "") {
