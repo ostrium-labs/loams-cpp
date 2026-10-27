@@ -2,7 +2,7 @@
 
 Writes four documents to the `sqldemo` collection, then runs SQL over it: a filtered `SELECT`, an aggregate, `vector_search`, `text_search` and `rrf` fusing the two. Each query's result is printed as a table.
 
-SQL is served by the native API route `POST /v1/namespaces/{ns}/sql`; the example calls it through the SDK's raw call path.
+The example uses the published `loams.sql` module and prints the SDK's column-name/value records; it does not make a raw HTTP or dynamic RPC call.
 
 ```sh
 ./build/sql

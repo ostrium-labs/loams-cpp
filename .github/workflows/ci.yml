@@ -8,10 +8,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      # The SDK lives in the monorepo until the 0.1.0 release tarball is published.
+      # Build against the exact SDK release source.
       - uses: actions/checkout@v4
         with:
           repository: ostrium-labs/loams
+          ref: v0.1.2
           path: loams
           sparse-checkout: sdks/cpp
       - name: toolchain

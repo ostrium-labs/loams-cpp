@@ -1,58 +1,43 @@
-// SQL over a collection: a plain SELECT, then vector_search, text_search and rrf.
-//
-//   ./sql
-//
-// SQL is served at /v1/namespaces/{ns}/sql by the native API (there is no SQL RPC
-// in the protos), so this calls the route through the SDK's raw call path.
-// Reads and writes only the `examples-cpp` namespace.
+// SQL through the published loams.sql module. The app seeds its own collection
+// in examples-cpp; stable IDs make repeated runs safe.
 
-#include "loams_raw.hpp"
+#include <iostream>
+#include <utility>
 
-namespace {
-
-void Run(loams::Loams& client, const std::string& label, const std::string& sql) {
-  std::cout << "\n-- " << label << "\n" << sql << "\n";
-  const ex::Struct result =
-      ex::Call(client, "loams.native.v1.Sql/Query", "{\"query\":" + ex::Quote(sql) + "}", true,
-               std::string("/v1/namespaces/") + ex::kNamespace + "/sql");
-  std::string header;
-  for (const auto& column : ex::Get(result, "columns").list_value().values()) {
-    header += ex::Text(ex::Get(column.struct_value(), "name")) + "\t";
-  }
-  std::cout << header << "\n";
-  for (const auto& row : ex::Get(result, "rows").list_value().values()) {
-    std::string line;
-    for (const auto& cell : row.list_value().values()) line += ex::Text(cell) + "\t";
-    std::cout << line << "\n";
-  }
-}
-
-}  // namespace
+#include <loams/loams.hpp>
 
 int main() {
-  constexpr int kDim = 32;
-  const std::string collection = "sqldemo";
-  auto client = ex::Connect();
   try {
-    ex::CreateNamespace(*client);
-    ex::CreateDocsCollection(*client, collection, kDim);
-    ex::Upsert(*client, collection,
-               {{1, "refund policy for damaged items", "acme"},
-                {2, "shipping times and carriers", "acme"},
-                {3, "refund window for digital goods", "globex"},
-                {4, "how to reset your password", "acme"}},
-               kDim);
+    auto options = loams::OptionsFromEnv();
+    options.default_namespace = "examples-cpp";
+    options.session_consistency = true;
+    auto client = loams::MakeLoams(std::move(options));
+    try { client->Namespaces()->Create("examples-cpp"); }
+    catch (const loams::AlreadyExistsError&) { }
+    try { client->Collections()->Create("sqldemo", loams::Schema().Text("body").Keyword("tenant").Vector("embedding", 4)); }
+    catch (const loams::AlreadyExistsError&) { }
 
-    const std::string vec = ex::Floats(ex::Embed("refund policy", kDim));
-    Run(*client, "a plain SELECT", "SELECT _id, body, tenant FROM sqldemo WHERE tenant = 'acme' ORDER BY _id");
-    Run(*client, "an aggregate", "SELECT tenant, count(*) AS n FROM sqldemo GROUP BY tenant ORDER BY tenant");
-    Run(*client, "vector_search", "SELECT _id, body, _score FROM vector_search('sqldemo', " + vec + ", 'embedding', 3)");
-    Run(*client, "text_search (BM25)", "SELECT _id, body, _score FROM text_search('sqldemo', 'refund', 'body', 3)");
-    Run(*client, "rrf: vector + text fused",
-        "SELECT _id, body, _score FROM rrf(vector_search('sqldemo', " + vec +
-            ", 'embedding', 10), text_search('sqldemo', 'refund policy', 'body', 10)) LIMIT 3");
+    auto docs = client->Collection("sqldemo");
+    docs.Upsert({
+        loams::Document::FromJson(1, R"({"body":"refund policy for damaged items","tenant":"acme"})",
+                                  {{"embedding", {1, 0, 0, 0}}}),
+        loams::Document::FromJson(2, R"({"body":"shipping times and carriers","tenant":"acme"})",
+                                  {{"embedding", {0, 1, 0, 0}}}),
+        loams::Document::FromJson(3, R"({"body":"refund window for digital goods","tenant":"globex"})",
+                                  {{"embedding", {0, 0, 1, 0}}}),
+    });
+
+    const auto result = client->Sql()->Query("SELECT tenant, count(*) AS n FROM sqldemo GROUP BY tenant ORDER BY tenant");
+    for (const auto& row : loams::SqlModule::Records(result)) {
+      std::cout << row.at("tenant").string_value() << " | " << row.at("n").number_value() << "\n";
+    }
+    const auto hybrid = client->Sql()->Query(
+        "SELECT _id, body, _score FROM rrf(vector_search('sqldemo', [1.0, 0.0, 0.0, 0.0], 'embedding', 10), "
+        "text_search('sqldemo', 'refund', 'body', 10)) LIMIT 3");
+    std::cout << "hybrid result rows: " << loams::SqlModule::Records(hybrid).size() << "\n";
   } catch (const loams::LoamsError& error) {
-    ex::PrintError(error);
+    std::cerr << loams::ToString(error.CodeValue()) << " / " << loams::ToString(error.ReasonValue()) << ": "
+              << error.what() << "\n";
     return 1;
   }
   return 0;
