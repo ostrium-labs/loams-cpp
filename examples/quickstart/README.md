@@ -1,9 +1,9 @@
 # quickstart
 
-Connects, creates the `quickstart` collection in the `examples-cpp` namespace (a text field, a keyword `tenant` field and a 32-dimension cosine vector), upserts four documents, and runs hybrid search (vector + BM25, fused with RRF), once filtered to `tenant = acme` and once unfiltered.
+Connects, checks the instance/system modules, then exercises namespaces, collections, documents, standalone text and vector search, hybrid retrieval, optional graph, SQL and streams in the `examples-cpp` namespace. Stable document IDs and producer keys make reruns safe; it never drops collections or graphs.
 
 ```sh
 ./build/quickstart
 ```
 
-Embeddings are a toy hashed bag-of-words (Loams hosts no models); replace `ex::Embed` with your model.
+The sample vectors are illustrative; Loams hosts no embedding model.

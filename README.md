@@ -1,7 +1,6 @@
 # loams-cpp
 
-These examples target **Loams SDK 0.1.2**. Installation and CI require the matching
-0.1.2 packages and release tags to be published.
+These examples target the published **Loams SDK 0.1.2** release.
 
 Example apps for the [Loams](https://loams.dev) C++ SDK.
 
@@ -11,19 +10,19 @@ Loams is an open-source data engine for AI apps: hybrid (vector + BM25 + filter)
 
 | Folder | What it shows |
 |---|---|
-| [`examples/quickstart`](examples/quickstart) | Connect, create a collection, upsert documents, hybrid search with a filter |
-| [`examples/sql`](examples/sql) | SQL over a collection: `SELECT`, `vector_search`, `text_search`, `rrf` |
-| [`examples/kb`](examples/kb) | `kb`, a small CLI: ingest text files, ask questions, print the retrieved context for an LLM prompt |
+| [`examples/quickstart`](examples/quickstart) | Instance/system, namespaces, collections, documents, text/vector/hybrid search, optional graph, SDK SQL and streams |
+| [`examples/sql`](examples/sql) | SQL module with aggregation and `rrf`, `vector_search`, `text_search` table functions |
+| [`examples/kb`](examples/kb) | SDK-backed CLI: ingest text files, ask questions, print retrieved context; explicit `kb drop` only affects this demo collection |
 
 The examples read and write only a namespace named `examples-cpp`.
 
 ## A note on the SDK
 
-The SDK provides namespaces, collections, documents, search, vector, graph, SQL and streams. These examples retain the raw call helper in [`common/loams_raw.hpp`](common/loams_raw.hpp) to demonstrate Connect JSON and native HTTP routes through the SDK runtime. See the [SDK notes example](https://github.com/ostrium-labs/loams/blob/v0.1.2/sdks/cpp/examples/notes/main.cpp) for app modules and builders.
+The examples use the published 0.1.2 high-level modules and builders throughout; they do not hand-build Connect JSON or call the native SQL HTTP route. The SDK's `Live()` and `System()` facade remain available; quickstart demonstrates `System()` for version and feature discovery. The upstream [SDK notes example](https://github.com/ostrium-labs/loams/blob/v0.1.2/sdks/cpp/examples/notes/main.cpp) documents the same published signatures.
 
 ## Install the SDK
 
-Use the `loams-cpp-0.1.2.tar.gz` release asset, or build against `sdks/cpp` from the matching `v0.1.2` monorepo tag. An installed SDK is resolved with `find_package(loams 0.1.2 EXACT CONFIG)`. CI checks out the exact release tag.
+Download the [`loams-cpp-0.1.2.tar.gz` release asset](https://github.com/ostrium-labs/loams/releases/download/v0.1.2/loams-cpp-0.1.2.tar.gz), or build against `sdks/cpp` from the matching `v0.1.2` monorepo tag. An installed SDK is resolved with `find_package(loams 0.1.2 EXACT CONFIG)`. CI checks out the exact release tag.
 
 Requirements: C++17, CMake 3.20+, libcurl, pkg-config, and **protobuf 36.1** exactly (the SDK's generated stubs need that runtime; Arch ships it, Ubuntu 24.04 does not, and the [CI workflow](.github/workflows/ci.yml) shows how to build it).
 

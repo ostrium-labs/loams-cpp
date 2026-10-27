@@ -21,6 +21,5 @@ endif()
 
 foreach(example quickstart sql kb)
   add_executable(${example} examples/${example}/main.cpp)
-  target_include_directories(${example} PRIVATE common)
   target_link_libraries(${example} PRIVATE loams::loams)
 endforeach()
